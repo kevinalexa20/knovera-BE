@@ -15,9 +15,11 @@ const app = express();
 
 app.use(
   cors({
-    origin: "http://localhost:5173", // Your frontend URL
+    // origin: "http://localhost:5173", // Your frontend URL
+    //allow from any origin for testing only, if for production, change to the frontend URL
+    origin: "*",
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
-    credentials: true,
+    // credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
