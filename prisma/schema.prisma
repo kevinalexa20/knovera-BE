@@ -1,0 +1,162 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  // previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id               String    @id
+  firstName        String
+  lastName         String
+  email            String    @unique
+  role             String    @default("STUDENT") // "STUDENT", "INSTRUCTOR", "ADMIN"
+  dateOfBirth      DateTime?
+  phoneNumber      String?
+  address          String?
+  avatar           String? // URL gambar profil
+  bio              String? // Deskripsi singkat
+  lastActivityTime DateTime  @default(now())
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  // Relations
+  enrollments    Enrollment[]
+  coursesCreated Course[]         @relation("CourseInstructor")
+  assignments    Assignment[] // untuk instructor
+  submissions    Submission[] // untuk student
+  LessonProgress LessonProgress[]
+}
+
+model Course {
+  id          String   @id @default(uuid())
+  title       String
+  description String
+  thumbnail   String? // URL gambar course
+  price       Float?
+  level       String // "BEGINNER", "INTERMEDIATE", "ADVANCED"
+  status      String // "DRAFT", "PUBLISHED", "ARCHIVED"
+  slug        String?  @unique @default("temp-slug")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  instructor   User         @relation("CourseInstructor", fields: [instructorId], references: [id])
+  instructorId String
+  enrollments  Enrollment[]
+  sections     Section[]
+  category     Category     @relation(fields: [categoryId], references: [id])
+  categoryId   String
+  userId       String?
+}
+
+model Category {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  courses     Course[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Section {
+  id        String   @id @default(uuid())
+  title     String
+  order     Int
+  slug      String?  @unique @default("temp-section-slug")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  course   Course   @relation(fields: [courseId], references: [id])
+  courseId String
+  lessons  Lesson[]
+}
+
+model Lesson {
+  id          String   @id @default(uuid())
+  title       String
+  content     String // Bisa berupa text atau URL video
+  duration    Int // Durasi dalam menit
+  order       Int
+  type        String // "VIDEO", "TEXT", "QUIZ"
+  slug        String?  @unique @default("temp-lesson-slug")
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  section        Section          @relation(fields: [sectionId], references: [id])
+  sectionId      String
+  assignments    Assignment[]
+  LessonProgress LessonProgress[]
+}
+
+model Assignment {
+  id          String    @id @default(uuid())
+  title       String
+  description String
+  dueDate     DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  lesson       Lesson       @relation(fields: [lessonId], references: [id])
+  lessonId     String
+  instructor   User         @relation(fields: [instructorId], references: [id])
+  instructorId String
+  submissions  Submission[]
+}
+
+model Submission {
+  id          String   @id @default(uuid())
+  content     String
+  score       Float?
+  feedback    String?
+  submittedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  assignment   Assignment @relation(fields: [assignmentId], references: [id])
+  assignmentId String
+  student      User       @relation(fields: [studentId], references: [id])
+  studentId    String
+}
+
+model Enrollment {
+  id          String    @id @default(uuid())
+  status      String // "ACTIVE", "COMPLETED", "DROPPED"
+  progress    Float     @default(0)
+  enrolledAt  DateTime  @default(now())
+  completedAt DateTime?
+
+  // Relations
+  course    Course @relation(fields: [courseId], references: [id])
+  courseId  String
+  student   User   @relation(fields: [studentId], references: [id])
+  studentId String
+
+  @@unique([courseId, studentId])
+}
+
+model LessonProgress {
+  id        String  @id @default(uuid())
+  completed Boolean @default(false)
+  watchTime Int     @default(0)
+  lessonId  String
+  lesson    Lesson  @relation(fields: [lessonId], references: [id])
+  userId    String
+  user      User    @relation(fields: [userId], references: [id])
+
+  @@unique([lessonId, userId])
+}

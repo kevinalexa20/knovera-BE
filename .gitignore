@@ -1,0 +1,5 @@
+node_modules
+# Keep environment variables out of version control
+.env
+# ignore node_modules in the root of the project
+/node_modules
